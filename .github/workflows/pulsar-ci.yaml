@@ -26,11 +26,11 @@ on:
   schedule:
     - cron: '0 12 * * *'
   workflow_dispatch:
-    inputs:
-      collect_coverage:
-        description: 'Collect test coverage and upload to Codecov'
-        required: true
-        default: 'true'
+    # inputs:
+    #   collect_coverage:
+    #     description: 'Collect test coverage and upload to Codecov'
+    #     required: true
+    #     default: 'true'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
