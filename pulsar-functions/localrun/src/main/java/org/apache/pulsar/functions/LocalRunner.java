@@ -445,6 +445,14 @@ public class LocalRunner implements AutoCloseable {
             if (webServiceUrl == null) {
                 webServiceUrl = DEFAULT_WEB_SERVICE_URL;
             }
+            if (sourceConfig != null && sourceConfig.getConfigs() != null
+                    && sourceConfig.getConfigs().get("pulsar.service.url") != null){
+                serviceUrl = (String) sourceConfig.getConfigs().get("pulsar.service.url");
+            }
+            if (sinkConfig != null && sinkConfig.getConfigs() != null
+                    && sinkConfig.getConfigs().get("pulsar.service.url") != null){
+                serviceUrl = (String) sinkConfig.getConfigs().get("pulsar.service.url");
+            }
 
             if ((sourceConfig != null || sinkConfig != null
                     || functionConfig.getRuntime() == FunctionConfig.Runtime.JAVA)
