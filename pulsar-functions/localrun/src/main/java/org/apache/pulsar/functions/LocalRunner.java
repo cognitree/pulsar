@@ -441,8 +441,7 @@ public class LocalRunner implements AutoCloseable {
             String serviceUrl = DEFAULT_SERVICE_URL;
             if (brokerServiceUrl != null) {
                 serviceUrl = brokerServiceUrl;
-            }
-            else {
+            } else {
                 if (sourceConfig != null && sourceConfig.getConfigs() != null
                         && sourceConfig.getConfigs().get("pulsar.service.url") != null){
                     serviceUrl = (String) sourceConfig.getConfigs().get("pulsar.service.url");
