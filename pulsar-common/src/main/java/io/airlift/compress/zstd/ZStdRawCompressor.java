@@ -24,8 +24,7 @@ package io.airlift.compress.zstd;
 public class ZStdRawCompressor {
     public static int compress(long inputAddress, long inputLimit,
             long outputAddress, long outputLimit, int compressionLevel) {
-        System.out.println("Hello");
-	return ZstdFrameCompressor.compress(null, inputAddress, inputLimit, null, outputAddress, outputLimit,
+        return ZstdFrameCompressor.compress(null, inputAddress, inputLimit, null, outputAddress, outputLimit,
                 compressionLevel);
     }
 
