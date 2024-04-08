@@ -197,6 +197,7 @@ public abstract class BookKeeperClusterTestCase {
         assertFalse(failed, "Async failure");
         Stopwatch sw = Stopwatch.createStarted();
         LOG.info("TearDown");
+        System.out.println("Hello");
         Exception tearDownException = null;
         // stop bookkeeper service
         try {
