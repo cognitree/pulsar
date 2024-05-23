@@ -52,7 +52,7 @@ public class PulsarDebeziumOracleSourceTest extends PulsarIOTestBase {
         final String tenant = TopicName.PUBLIC_TENANT;
         final String namespace = TopicName.DEFAULT_NAMESPACE;
         final String outputTopicName = "debe-output-topic-name-" + testId.getAndIncrement();
-        final String consumeTopicName = "debezium/oracle/XE.INV.CUSTOMERS";
+        final String consumeTopicName = "debezium/oracle/t.XE.INV.CUSTOMERS";
         final String sourceName = "test-source-debezium-oracle-" + functionRuntimeType + "-" + randomName(8);
 
         // This is the event count to be created by prepareSource.
