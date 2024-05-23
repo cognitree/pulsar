@@ -18,9 +18,8 @@
  */
 package org.apache.pulsar.io.debezium.oracle;
 
-import org.apache.kafka.connect.runtime.TaskConfig;
 import java.util.Map;
-
+import org.apache.kafka.connect.runtime.TaskConfig;
 
 /**
  * A pulsar source that runs debezium oracle source.
