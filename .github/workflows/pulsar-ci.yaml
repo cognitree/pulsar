@@ -1285,9 +1285,9 @@ jobs:
     timeout-minutes: 10
     needs: [
       'preconditions',
-      'system-tests',
-      'system-tests-upload-coverage',
-      'flaky-system-tests'
+      'system-tests'
+#      'system-tests-upload-coverage',
+#      'flaky-system-tests'
     ]
     if: ${{ needs.preconditions.outputs.docs_only != 'true' }}
     steps:
