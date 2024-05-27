@@ -40,7 +40,7 @@ public class PulsarDebeziumOracleSourceTest extends PulsarIOTestBase {
     protected final AtomicInteger testId = new AtomicInteger(0);
 
     public PulsarDebeziumOracleSourceTest() {
-        super(FunctionRuntimeType.PROCESS);
+        super(FunctionRuntimeType.THREAD);
     }
 
     @Test(groups = "source", timeOut = 1800000)
