@@ -203,11 +203,6 @@ public class PulsarIOSourceRunner extends PulsarIOTestRunner {
             "--name", sourceName
         };
 
-        final ContainerExecResult result = pulsarCluster.getAnyWorker().execCmd(commands);
-        log.info("Get function source status : {}", result.getStdout());
-
-        assertEquals(result.getExitCode(), 0);
-
         final ContainerExecResult resultBookie = pulsarCluster.getAnyBookie().execCmd(commands);
         log.info("Get bookie source status : {}", resultBookie.getStdout());
 
@@ -216,15 +211,11 @@ public class PulsarIOSourceRunner extends PulsarIOTestRunner {
 
         final List<WorkerContainer> workers = pulsarCluster.getAlWorkers();
         log.info("Workers: {}", workers);
-        workers.forEach(workerContainer -> {
-            final ContainerExecResult resultWorker;
-            try {
-                resultWorker = pulsarCluster.getAnyBroker().execCmd(commands);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-            log.info("Get worker source status : {}", resultWorker.getStdout());
-        });
+
+        final ContainerExecResult result = pulsarCluster.getAnyWorker().execCmd(commands);
+        log.info("Get function source status : {}", result.getStdout());
+
+        assertEquals(result.getExitCode(), 0);
 
         final SourceStatus sourceStatus = SourceStatusUtil.decode(result.getStdout());
 
