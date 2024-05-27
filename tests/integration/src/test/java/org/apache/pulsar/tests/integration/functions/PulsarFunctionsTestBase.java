@@ -102,7 +102,7 @@ public abstract class PulsarFunctionsTestBase extends PulsarTestSuite {
     protected final FunctionRuntimeType functionRuntimeType;
 
     public PulsarFunctionsTestBase() {
-        this(FunctionRuntimeType.PROCESS);
+        this(FunctionRuntimeType.THREAD);
     }
 
     protected PulsarFunctionsTestBase(FunctionRuntimeType functionRuntimeType) {
