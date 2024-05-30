@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Scanner;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -142,6 +144,7 @@ public class PulsarShell {
     private InteractiveLineReader reader;
     private final ConfigShell configShell;
     private ExecState execState = ExecState.IDLE;
+    private CompletableFuture<Object> commandFuture;
 
     public PulsarShell(String args[]) throws IOException {
         this(args, new Properties());
@@ -231,7 +234,11 @@ public class PulsarShell {
                 .signalHandler(signal -> {
                     if (signal == Terminal.Signal.INT || signal == Terminal.Signal.QUIT) {
                         if (execState == ExecState.RUNNING) {
-                            throw new InterruptShellException();
+                            if (commandFuture != null) {
+                                commandFuture.cancel(true);
+                            } else {
+                                throw new InterruptShellException();
+                            }
                         } else {
                             exit(0);
                         }
@@ -435,12 +442,20 @@ public class PulsarShell {
             boolean commandOk = false;
             try {
                 printExecutingCommands(terminal, commandsInfo, false);
-                systemRegistry.execute(line);
-            } catch (InterruptShellException t) {
-                // no-op
+                commandFuture = CompletableFuture.supplyAsync(()-> {
+                    try {
+                        return systemRegistry.execute(line);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+                commandFuture.get();
+            } catch (CancellationException t) {
+                output("Command interrupted", terminal);
             } catch (Throwable t) {
                 t.printStackTrace(terminal.writer());
             } finally {
+                commandFuture = null;
                 final boolean willExitWithError = mainOptions.failOnError && !commandOk;
                 if (commandsInfo != null && !willExitWithError) {
                     commandsInfo.executingCommand = null;
