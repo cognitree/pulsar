@@ -83,22 +83,29 @@ public class NarUnpacker {
         synchronized (localLock) {
             // create file lock that ensures that other processes
             // using the same lock file don't execute concurrently
+            File successFile = new File(parentDirectory, "." + md5Sum + ".success");
             try (FileChannel channel = new RandomAccessFile(lockFile, "rw").getChannel();
                  FileLock lock = channel.lock()) {
                 File narWorkingDirectory = new File(parentDirectory, md5Sum);
-                if (narWorkingDirectory.mkdir()) {
+                if (narWorkingDirectory.mkdir() || !successFile.exists()) {
                     try {
                         log.info("Extracting {} to {}", nar, narWorkingDirectory);
                         if (extractCallback != null) {
                             extractCallback.run();
                         }
                         unpack(nar, narWorkingDirectory);
+                        boolean createSuccessFile = successFile.createNewFile();
+                        log.info("Successfully extracted nar file, status for creating success marker at {} is {}",
+                                successFile.getAbsolutePath(), createSuccessFile);
                     } catch (IOException e) {
                         log.error("There was a problem extracting the nar file. Deleting {} to clean up state.",
                                 narWorkingDirectory, e);
                         FileUtils.deleteFile(narWorkingDirectory, true);
                         throw e;
                     }
+                } else {
+                    log.info("Either directory {} or success file {} already exists. "
+                            + "Extraction will be skipped.", narWorkingDirectory, successFile);
                 }
                 return narWorkingDirectory;
             }
@@ -166,7 +173,7 @@ public class NarUnpacker {
      * @throws IOException
      *             if cannot read file
      */
-    private static byte[] calculateMd5sum(final File file) throws IOException {
+    protected static byte[] calculateMd5sum(final File file) throws IOException {
         try (final FileInputStream inputStream = new FileInputStream(file)) {
             // codeql[java/weak-cryptographic-algorithm] - md5 is sufficient for this use case
             final MessageDigest md5 = MessageDigest.getInstance("md5");
