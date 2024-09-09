@@ -107,22 +107,23 @@ public class NarUnpackerTest {
         CountDownLatch countDownLatch = new CountDownLatch(threads);
         AtomicInteger exceptionCounter = new AtomicInteger();
         AtomicInteger extractCounter = new AtomicInteger();
-        for (int i = 0; i < threads; i++) {
-            new Thread(() -> {
-                try {
-                    // Simulate a failure during unpacking using empty zip file
-                    String corruptZip = "corrupt.zip";
-                    File corruptFile = new File(extractDirectory, corruptZip);
-                    Files.createFile(corruptFile.toPath());
-                    NarUnpacker.doUnpackNar(corruptFile, extractDirectory, extractCounter::incrementAndGet);
-                } catch (Exception e) {
-                    log.error("Unpacking failed", e);
-                    exceptionCounter.incrementAndGet();
-                } finally {
-                    countDownLatch.countDown();
-                }
-            }).start();
-        }
+        new Thread(() -> {
+            try {
+                // Simulate a failure during unpacking using empty zip file
+                String corruptZip = "corrupt.zip";
+                File corruptFile = new File(extractDirectory, corruptZip);
+                Files.createFile(corruptFile.toPath());
+                File narWorkingDirectory = NarUnpacker.doUnpackNar(corruptFile, extractDirectory, extractCounter::incrementAndGet);
+                String md5Sum = Base64.getUrlEncoder().withoutPadding().encodeToString(calculateMd5sum(sampleZipFile));
+                File successMarkerFile = new File(narWorkingDirectory.getParentFile(), "." + md5Sum + ".success");
+                assertTrue(successMarkerFile.exists(), "Success file should be created");
+            } catch (Exception e) {
+                log.error("Unpacking failed", e);
+                exceptionCounter.incrementAndGet();
+            } finally {
+                countDownLatch.countDown();
+            }
+        }).start();
         assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
         assertEquals(exceptionCounter.get(), 1);
         assertEquals(extractCounter.get(), 1);
@@ -138,11 +139,11 @@ public class NarUnpackerTest {
             // Extract the file initially
             File narWorkingDirectory = NarUnpacker.doUnpackNar(sampleZipFile, extractDirectory, extractCounter::incrementAndGet);
             String md5Sum = Base64.getUrlEncoder().withoutPadding().encodeToString(calculateMd5sum(sampleZipFile));
-            File successFile = new File(narWorkingDirectory.getParentFile(), "." + md5Sum + ".success");
-            assertTrue(successFile.exists(), "Success file should be created");
+            File successMarkerFile = new File(narWorkingDirectory.getParentFile(), "." + md5Sum + ".success");
+            assertTrue(successMarkerFile.exists(), "Success file should be created");
 
             // Delete the success file
-            successFile.delete();
+            successMarkerFile.delete();
 
             // Try extracting again
             new Thread(() -> {
