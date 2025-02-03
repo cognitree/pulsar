@@ -46,18 +46,18 @@ runs:
             time df -BM / /mnt
             echo "::endgroup::"
           done
-          if [[ "${{ inputs.mode }}" == "full" ]]; then
-            echo "::group::Moving /var/lib/docker to /mnt/docker"
-            sudo systemctl stop docker
-            sudo mkdir -p /mnt/docker
-            echo '{"data-root": "/mnt/docker"}' | sudo tee /etc/docker/daemon.json
-            sudo mv /var/lib/docker /mnt/docker
-            sudo systemctl start docker
-            sleep 2
-            sudo systemctl is-active --quiet docker || echo "Docker did not start correctly"
-            time df -BM / /mnt
-            echo "::endgroup::"
-          fi
+          # if [[ "${{ inputs.mode }}" == "full" ]]; then
+          #   echo "::group::Moving /var/lib/docker to /mnt/docker"
+          #   sudo systemctl stop docker
+          #   sudo mkdir -p /mnt/docker
+          #   echo '{"data-root": "/mnt/docker"}' | sudo tee /etc/docker/daemon.json
+          #   sudo mv /var/lib/docker /mnt/docker
+          #   sudo systemctl start docker
+          #   sleep 2
+          #   sudo systemctl is-active --quiet docker || echo "Docker did not start correctly"
+          #   time df -BM / /mnt
+          #   echo "::endgroup::"
+          # fi
           echo "::group::Cleaning apt state"
           time sudo bash -c "apt-get clean; apt-get autoclean; apt-get -y --purge autoremove"
           time df -BM / /mnt
