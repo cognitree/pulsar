@@ -14,6 +14,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 )
 
+
 require (
 	github.com/99designs/keyring v1.1.6 // indirect
 	github.com/AthenZ/athenz v1.10.39 // indirect
