@@ -135,6 +135,16 @@ public abstract class PulsarWorkerRebalanceDrainTest extends PulsarFunctionsTest
         return retVal;
     }
 
+    private String getTopicStats(String name) throws Exception {
+        ContainerExecResult result = pulsarCluster.getProxy().execCmd(
+                PulsarCluster.ADMIN_SCRIPT,
+                "topics",
+                "stats",
+                name
+        );
+        return result.getStdout();
+    }
+
     private List<WorkerInfo> getClusterStatus() throws Exception {
         val result = pulsarCluster.getAnyWorker().execCmd(
                 PulsarCluster.ADMIN_SCRIPT,
@@ -311,6 +321,7 @@ public abstract class PulsarWorkerRebalanceDrainTest extends PulsarFunctionsTest
 
         WorkerInfo oldClusterLeaderInfo = getClusterLeader();
         log.info("Cluster leader before adding more workers is: {}", oldClusterLeaderInfo);
+        log.debug("Stats for the Coordinate Topic: \n{}", getTopicStats("persistent://public/functions/coordinate"));
 
         List<Map<String, Collection<String>>> startFinfos = getFunctionAssignments();
         int startFuncCount = getFuncAssignmentsCount(startFinfos);
@@ -334,6 +345,7 @@ public abstract class PulsarWorkerRebalanceDrainTest extends PulsarFunctionsTest
 
         WorkerInfo newClusterLeaderInfo = getClusterLeader();
         log.info("Cluster leader after adding {} workers is: {}", numWorkersToAdd, newClusterLeaderInfo);
+        log.debug("Stats for the Coordinate Topic: \n{}", getTopicStats("persistent://public/functions/coordinate"));
         // Leadership should not have changed.
         assertTrue(oldClusterLeaderInfo.getWorkerId().compareTo(newClusterLeaderInfo.getWorkerId()) == 0);
 
