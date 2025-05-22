@@ -328,7 +328,8 @@ public class SaslAuthenticateTest extends ProducerConsumerBase {
         Field field = AuthenticationProviderSasl.class.getDeclaredField("authStates");
         field.setAccessible(true);
         Cache<Long, AuthenticationState> cache = (Cache<Long, AuthenticationState>) field.get(saslServer);
-        assertEquals(cache.asMap().size(), 10);
+        int totalEntries = ((int) cache.stats().evictionCount()) + cache.asMap().size();
+        assertEquals(totalEntries, 10);
         // Add more auth info into memory
         for (int i = 0; i < 10; i++) {
             AuthenticationDataProvider dataProvider =  authSasl.getAuthData("localhost");

@@ -121,7 +121,8 @@ public class AuthenticationProviderSasl implements AuthenticationProvider {
         this.signer = new SaslRoleTokenSigner(secret);
         this.authStates = Caffeine.newBuilder()
                 .maximumSize(config.getMaxInflightSaslContext())
-                .expireAfterWrite(config.getInflightSaslContextExpiryMs(), TimeUnit.MILLISECONDS).build();
+                .expireAfterWrite(config.getInflightSaslContextExpiryMs(), TimeUnit.MILLISECONDS)
+                .recordStats().build();
     }
 
     @Override
