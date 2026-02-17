@@ -34,7 +34,7 @@ Learn more about Pulsar at https://pulsar.apache.org
 
 ## Main features
 
-- Horizontally scalable (Millions of independent topics and millions
+- Horizontallyy scalable (Millions of independent topics and millions
   of messages published per second)
 - Strong ordering and consistency guarantees
 - Low latency durable storage
