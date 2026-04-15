@@ -113,6 +113,8 @@ public class PulsarClientTool implements CommandHook {
     String tlsKeyStorePassword;
     String sslFactoryPlugin;
     String sslFactoryPluginParams;
+    String operationTimeoutMs;
+    String lookupTimeoutMs;
 
     protected final CommandLine commander;
     protected CmdProduce produceCommand;
@@ -156,7 +158,8 @@ public class PulsarClientTool implements CommandHook {
         this.tlsCertificateFilePath = properties.getProperty("tlsCertificateFilePath");
         this.sslFactoryPlugin = properties.getProperty("sslFactoryPlugin");
         this.sslFactoryPluginParams = properties.getProperty("sslFactoryPluginParams");
-
+        this.operationTimeoutMs = properties.getProperty("operationTimeoutMs");
+        this.lookupTimeoutMs = properties.getProperty("lookupTimeoutMs");
         pulsarClientPropertiesProvider = PulsarClientPropertiesProvider.create(properties);
         commander.setDefaultValueProvider(pulsarClientPropertiesProvider);
         commander.addSubcommand("produce", produceCommand);
@@ -184,6 +187,11 @@ public class PulsarClientTool implements CommandHook {
         clientBuilder.enableTlsHostnameVerification(this.tlsEnableHostnameVerification);
         clientBuilder.serviceUrl(rootParams.serviceURL);
 
+        applyCustomTimeout(this.operationTimeoutMs, "operationTimeoutMs",
+                timeout -> clientBuilder.operationTimeout(timeout, java.util.concurrent.TimeUnit.MILLISECONDS));
+        applyCustomTimeout(this.lookupTimeoutMs, "lookupTimeoutMs",
+                timeout -> clientBuilder.lookupTimeout(timeout, java.util.concurrent.TimeUnit.MILLISECONDS));
+
         clientBuilder.tlsTrustCertsFilePath(this.rootParams.tlsTrustCertsFilePath)
                 .tlsKeyFilePath(tlsKeyFilePath)
                 .tlsCertificateFilePath(tlsCertificateFilePath);
@@ -210,6 +218,19 @@ public class PulsarClientTool implements CommandHook {
         this.consumeCommand.updateConfig(clientBuilder, authentication, this.rootParams.serviceURL);
         this.readCommand.updateConfig(clientBuilder, authentication, this.rootParams.serviceURL);
         return 0;
+    }
+
+    private void applyCustomTimeout(String timeoutStr, String propertyName,
+                                    java.util.function.IntConsumer timeoutSetter) {
+        if (isNotBlank(timeoutStr)) {
+            try {
+                int timeout = Integer.parseInt(timeoutStr.trim());
+                timeoutSetter.accept(timeout);
+            } catch (NumberFormatException e) {
+                commander.getErr().println("Warning: Invalid " + propertyName + " value '"
+                        + timeoutStr + "' in client.conf. Using default value.");
+            }
+        }
     }
 
     public int run(String[] args) {

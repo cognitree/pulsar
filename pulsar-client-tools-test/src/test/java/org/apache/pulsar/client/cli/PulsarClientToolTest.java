@@ -26,6 +26,8 @@ import static org.testng.Assert.assertTrue;
 import java.io.File;
 import java.nio.file.Files;
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -43,6 +45,8 @@ import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.ProxyProtocol;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.impl.BatchMessageIdImpl;
+import org.apache.pulsar.client.impl.ClientBuilderImpl;
+import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.common.policies.data.TenantInfoImpl;
 import org.apache.pulsar.common.schema.KeyValue;
 import org.apache.pulsar.common.util.ObjectMapperFactory;
@@ -585,6 +589,32 @@ public class PulsarClientToolTest extends BrokerTestBase {
         properties.setProperty("serviceUrl", brokerUrl.toString());
         properties.setProperty("useTls", "false");
         return properties;
+    }
+
+    @Test
+    public void testTimeoutConfigurationLoading() throws Exception {
+        final long expectedOpTimeout = 55000L;
+        final long expectedLookupTimeout = 65000L;
+
+        Properties properties = new Properties();
+        properties.setProperty("serviceUrl", brokerUrl.toString());
+        properties.setProperty("operationTimeoutMs", String.valueOf(expectedOpTimeout));
+        properties.setProperty("lookupTimeoutMs", String.valueOf(expectedLookupTimeout));
+
+        Map<String, Object> configMap = new HashMap<>();
+        for (String key : properties.stringPropertyNames()) {
+            configMap.put(key, properties.getProperty(key));
+        }
+        // Apply the configuration using loadConf()
+        ClientBuilderImpl builder = new ClientBuilderImpl();
+        builder.loadConf(configMap);
+
+        // Extract the configuration data and assert the timeouts were updated
+        ClientConfigurationData conf = builder.getClientConfigurationData();
+        Assert.assertEquals(conf.getOperationTimeoutMs(), expectedOpTimeout,
+                "operationTimeoutMs should be loaded from client properties");
+        Assert.assertEquals(conf.getLookupTimeoutMs(), expectedLookupTimeout,
+                "lookupTimeoutMs should be loaded from client properties");
     }
 
 }
