@@ -25,6 +25,7 @@ import java.util.Map;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.Message;
+import org.apache.pulsar.client.api.schema.Field;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.client.api.schema.GenericSchema;
 import org.apache.pulsar.client.impl.MessageImpl;
@@ -32,8 +33,12 @@ import org.apache.pulsar.client.impl.schema.AutoConsumeSchema;
 import org.apache.pulsar.client.impl.schema.AvroSchema;
 import org.apache.pulsar.client.impl.schema.generic.GenericAvroSchema;
 import org.apache.pulsar.client.impl.schema.generic.GenericSchemaImpl;
+import org.apache.pulsar.common.schema.KeyValue;
 import org.apache.pulsar.functions.api.Record;
 import org.apache.pulsar.functions.source.PulsarRecord;
+import org.apache.pulsar.io.core.SinkContext;
+import org.apache.solr.common.SolrInputDocument;
+import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -108,5 +113,85 @@ public class SolrGenericRecordSinkTest {
 
         // open should success
         sink.open(configs, null);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testDebeziumUnwrapEnvelope() throws Exception {
+        SolrGenericRecordSink sink = new SolrGenericRecordSink();
+        Map<String, Object> configs = new HashMap<>();
+        configs.put("solrUrl", "http://localhost:8983/solr");
+        configs.put("solrMode", "Standalone");
+        configs.put("solrCollection", "techproducts");
+        configs.put("unwrapDebeziumRecord", true);
+        sink.open(configs, mock(SinkContext.class));
+
+        GenericRecord mockRootRecord = mock(GenericRecord.class);
+        Record<GenericRecord> mockMessage = mock(Record.class);
+        when(mockMessage.getValue()).thenReturn(mockRootRecord);
+
+        GenericRecord mockValueRecord = mock(GenericRecord.class);
+        KeyValue<Object, Object> kv = new KeyValue<>("key", mockValueRecord);
+        when(mockRootRecord.getNativeObject()).thenReturn(kv);
+
+        // Mock the "after" field inside the value record
+        Field afterSchemaField = mock(Field.class);
+        when(afterSchemaField.getName()).thenReturn("after");
+        when(mockValueRecord.getFields()).thenReturn(java.util.Arrays.asList(afterSchemaField));
+
+        GenericRecord mockAfterRecord = mock(GenericRecord.class);
+        when(mockValueRecord.getField(afterSchemaField)).thenReturn(mockAfterRecord);
+        when(mockValueRecord.getField("after")).thenReturn(mockAfterRecord);
+
+        // Mock the fields inside the "after" record (id=100, user_id=999)
+        Field idField = mock(Field.class);
+        when(idField.getName()).thenReturn("id");
+        Field userIdField = mock(Field.class);
+        when(userIdField.getName()).thenReturn("user_id");
+
+        when(mockAfterRecord.getFields()).thenReturn(java.util.Arrays.asList(idField, userIdField));
+        when(mockAfterRecord.getField(idField)).thenReturn(100);
+        when(mockAfterRecord.getField(userIdField)).thenReturn(999);
+        SolrInputDocument doc = sink.convert(mockMessage);
+
+        Assert.assertEquals(doc.getFieldValue("id"), "100");
+        Assert.assertEquals(doc.getFieldValue("user_id"), "999");
+        Assert.assertNull(doc.getFieldValue("op"), "Should ignore Debezium metadata like 'op'");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testDebeziumUnwrapFlatValue() throws Exception {
+        SolrGenericRecordSink sink = new SolrGenericRecordSink();
+        Map<String, Object> configs = new HashMap<>();
+        configs.put("solrUrl", "http://localhost:8983/solr");
+        configs.put("solrMode", "Standalone");
+        configs.put("solrCollection", "techproducts");
+        configs.put("unwrapDebeziumRecord", true);
+        sink.open(configs, mock(SinkContext.class));
+
+        GenericRecord mockRootRecord = mock(GenericRecord.class);
+        Record<GenericRecord> mockMessage = mock(Record.class);
+        when(mockMessage.getValue()).thenReturn(mockRootRecord);
+
+        GenericRecord mockValueRecord = mock(GenericRecord.class);
+        KeyValue<Object, Object> kv = new KeyValue<>("key", mockValueRecord);
+        when(mockRootRecord.getNativeObject()).thenReturn(kv);
+
+        // Mock the flattened fields directly on the value record
+        Field idField = mock(Field.class);
+        when(idField.getName()).thenReturn("id");
+        Field profileIdField = mock(Field.class);
+        when(profileIdField.getName()).thenReturn("profile_id");
+
+        when(mockValueRecord.getFields()).thenReturn(java.util.Arrays.asList(idField, profileIdField));
+        when(mockValueRecord.getField(idField)).thenReturn(200);
+        when(mockValueRecord.getField(profileIdField)).thenReturn(801);
+        when(mockValueRecord.getField("after")).thenReturn(null);
+        SolrInputDocument doc = sink.convert(mockMessage);
+
+        Assert.assertEquals(doc.getFieldValue("id"), "200");
+        Assert.assertEquals(doc.getFieldValue("profile_id"), "801");
+        Assert.assertNull(doc.getFieldValue("user_id"), "user_id was not provided, should be null");
     }
 }
