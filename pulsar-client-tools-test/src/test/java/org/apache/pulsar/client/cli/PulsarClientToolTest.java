@@ -593,8 +593,8 @@ public class PulsarClientToolTest extends BrokerTestBase {
 
     @Test
     public void testTimeoutConfigurationLoading() throws Exception {
-        final long expectedOpTimeout = 55000L;
-        final long expectedLookupTimeout = 65000L;
+        final int expectedOpTimeout = 55000;
+        final int expectedLookupTimeout = 65000;
 
         Properties properties = new Properties();
         properties.setProperty("serviceUrl", brokerUrl.toString());
@@ -611,10 +611,10 @@ public class PulsarClientToolTest extends BrokerTestBase {
 
         // Extract the configuration data and assert the timeouts were updated
         ClientConfigurationData conf = builder.getClientConfigurationData();
-        Assert.assertEquals(conf.getOperationTimeoutMs(), expectedOpTimeout,
-                "operationTimeoutMs should be loaded from client properties");
-        Assert.assertEquals(conf.getLookupTimeoutMs(), expectedLookupTimeout,
-                "lookupTimeoutMs should be loaded from client properties");
+        Assert.assertEquals(conf.getOperationTimeoutMs(), (long) expectedOpTimeout,
+                "operationTimeoutMs should be correctly loaded from properties");
+        Assert.assertEquals(conf.getLookupTimeoutMs(), (long) expectedLookupTimeout,
+                "lookupTimeoutMs should be correctly loaded from properties");
     }
 
 }

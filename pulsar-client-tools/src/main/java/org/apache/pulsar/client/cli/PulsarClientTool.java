@@ -187,10 +187,14 @@ public class PulsarClientTool implements CommandHook {
         clientBuilder.enableTlsHostnameVerification(this.tlsEnableHostnameVerification);
         clientBuilder.serviceUrl(rootParams.serviceURL);
 
-        applyCustomTimeout(this.operationTimeoutMs, "operationTimeoutMs",
-                timeout -> clientBuilder.operationTimeout(timeout, java.util.concurrent.TimeUnit.MILLISECONDS));
-        applyCustomTimeout(this.lookupTimeoutMs, "lookupTimeoutMs",
-                timeout -> clientBuilder.lookupTimeout(timeout, java.util.concurrent.TimeUnit.MILLISECONDS));
+        Integer opTimeout = parseTimeout(this.operationTimeoutMs, "operationTimeoutMs");
+        if (opTimeout != null) {
+            clientBuilder.operationTimeout(opTimeout, java.util.concurrent.TimeUnit.MILLISECONDS);
+        }
+        Integer lookupTimeout = parseTimeout(this.lookupTimeoutMs, "lookupTimeoutMs");
+        if (lookupTimeout != null) {
+            clientBuilder.lookupTimeout(lookupTimeout, java.util.concurrent.TimeUnit.MILLISECONDS);
+        }
 
         clientBuilder.tlsTrustCertsFilePath(this.rootParams.tlsTrustCertsFilePath)
                 .tlsKeyFilePath(tlsKeyFilePath)
@@ -220,17 +224,16 @@ public class PulsarClientTool implements CommandHook {
         return 0;
     }
 
-    private void applyCustomTimeout(String timeoutStr, String propertyName,
-                                    java.util.function.IntConsumer timeoutSetter) {
+    private Integer parseTimeout(String timeoutStr, String propertyName) {
         if (isNotBlank(timeoutStr)) {
             try {
-                int timeout = Integer.parseInt(timeoutStr.trim());
-                timeoutSetter.accept(timeout);
+                return Integer.parseInt(timeoutStr.trim());
             } catch (NumberFormatException e) {
                 commander.getErr().println("Warning: Invalid " + propertyName + " value '"
                         + timeoutStr + "' in client.conf. Using default value.");
             }
         }
+        return null;
     }
 
     public int run(String[] args) {
