@@ -95,7 +95,29 @@ public class SolrGenericRecordSink extends SolrAbstractSink<GenericRecord> {
     private GenericRecord extractAfterRecord(GenericRecord envelopeRecord, SolrInputDocument solrDocument) {
         Object afterField = envelopeRecord.getField("after");
         if (afterField == null) {
-            log.info("Debezium DELETE event detected, skipping document creation");
+            log.info("Debezium DELETE event detected, Processing deletion");
+
+            Object beforeField = envelopeRecord.getField("before");
+            if (beforeField instanceof GenericRecord) {
+                GenericRecord beforeRecord = (GenericRecord) beforeField;
+                Object id = beforeRecord.getField("id");
+
+                if (id != null) {
+                    try {
+                        int commitWithinMs = (solrSinkConfig != null && solrSinkConfig.getSolrCommitWithinMs() > 0)
+                                ? solrSinkConfig.getSolrCommitWithinMs() : 1000;
+                        getSolrClient().deleteById(String.valueOf(id), commitWithinMs);
+                        log.info("Successfully issued delete to Solr for id={} with commitWithinMs={}",
+                                id, commitWithinMs);
+                    } catch (Exception e) {
+                        log.error("Failed to delete document from Solr for id={}", id, e);
+                    }
+                } else {
+                    log.warn("DELETE event received, but 'id' field was missing or null in the 'before' record.");
+                }
+            } else {
+                log.warn("DELETE event received, but 'before' field is not a GenericRecord.");
+            }
             return null;
         }
         if (afterField instanceof GenericRecord) {

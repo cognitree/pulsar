@@ -79,6 +79,7 @@ public abstract class SolrAbstractSink<T> implements Sink<T> {
 
         SolrInputDocument document = convert(record);
         if (document == null) {
+            log.error("Failed to convert record: {}", record);
             record.ack();
             return;
         }
@@ -106,6 +107,10 @@ public abstract class SolrAbstractSink<T> implements Sink<T> {
 
     // convert record as a Solr document
     public abstract SolrInputDocument convert(Record<T> message);
+
+    protected SolrClient getSolrClient() {
+        return client;
+    }
 
     public static SolrClient getClient(SolrMode solrMode, String url) {
         SolrClient solrClient = null;
