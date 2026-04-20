@@ -19,6 +19,7 @@
 package org.apache.pulsar.io.debezium;
 
 import io.debezium.relational.HistorizedRelationalDatabaseConnectorConfig;
+import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -76,12 +77,41 @@ public abstract class DebeziumSource extends KafkaConnectSource {
 
     public abstract void setDbConnectorTask(Map<String, Object> config) throws Exception;
 
+    public static void applyConfigMappings(Map<String, Object> config) {
+        // Translate database.server.name to topic.prefix
+        if (config.containsKey("database.server.name") && !config.containsKey("topic.prefix")) {
+            config.put("topic.prefix", config.get("database.server.name"));
+            log.warn("Property 'database.server.name' is deprecated in Debezium 2.x. Auto-mapped to 'topic.prefix'");
+        }
+
+        // Translate topic.prefix back to database.server.name
+        if (config.containsKey("topic.prefix") && !config.containsKey("database.server.name")) {
+            config.put("database.server.name", config.get("topic.prefix"));
+            log.warn("Auto-mapped 'topic.prefix' to 'database.server.name' for internal validator compatibility");
+        }
+
+        // Translate table.whitelist to table.include.list
+        if (config.containsKey("table.whitelist") && !config.containsKey("table.include.list")) {
+            config.put("table.include.list", config.get("table.whitelist"));
+            log.warn("Property 'table.whitelist' is deprecated in Debezium 2.x. Auto-mapped to 'table.include.list'");
+        }
+
+        // Translate schema.whitelist to schema.include.list
+        if (config.containsKey("schema.whitelist") && !config.containsKey("schema.include.list")) {
+            config.put("schema.include.list", config.get("schema.whitelist"));
+            log.warn("Property 'schema.whitelist' is deprecated in Debezium 2.x. Auto-mapped to 'schema.include.list'");
+        }
+    }
+
     @Override
-    public void open(Map<String, Object> config, SourceContext sourceContext) throws Exception {
+    public void open(Map<String, Object> incomingConfig, SourceContext sourceContext) throws Exception {
+        Map<String, Object> config = new HashMap<>(incomingConfig);
         setDbConnectorTask(config);
         tryLoadingConfigSecret("database.user", config, sourceContext);
         tryLoadingConfigSecret("database.password", config, sourceContext);
 
+        // Apply backward compatibility mappings
+        applyConfigMappings(config);
         // key.converter
         setConfigIfNull(config, PulsarKafkaWorkerConfig.KEY_CONVERTER_CLASS_CONFIG, DEFAULT_CONVERTER);
         // value.converter
