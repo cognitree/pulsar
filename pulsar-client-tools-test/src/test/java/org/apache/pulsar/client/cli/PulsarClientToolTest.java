@@ -597,19 +597,21 @@ public class PulsarClientToolTest extends BrokerTestBase {
         final int expectedLookupTimeout = 65000;
 
         Properties properties = new Properties();
-        properties.setProperty("serviceUrl", brokerUrl.toString());
+        properties.setProperty("serviceUrl", "pulsar://localhost:6650");
         properties.setProperty("operationTimeoutMs", String.valueOf(expectedOpTimeout));
         properties.setProperty("lookupTimeoutMs", String.valueOf(expectedLookupTimeout));
 
+        // Simulate the new logic in PulsarClientTool: Convert to Map
         Map<String, Object> configMap = new HashMap<>();
         for (String key : properties.stringPropertyNames()) {
             configMap.put(key, properties.getProperty(key));
         }
+
         // Apply the configuration using loadConf()
         ClientBuilderImpl builder = new ClientBuilderImpl();
         builder.loadConf(configMap);
 
-        // Extract the configuration data and assert the timeouts were updated
+        // Extract the configuration data and assert the timeouts were updated correctly
         ClientConfigurationData conf = builder.getClientConfigurationData();
         Assert.assertEquals(conf.getOperationTimeoutMs(), (long) expectedOpTimeout,
                 "operationTimeoutMs should be correctly loaded from properties");

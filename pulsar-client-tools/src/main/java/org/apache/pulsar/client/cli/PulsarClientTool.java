@@ -22,6 +22,8 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import com.google.common.annotations.VisibleForTesting;
 import java.io.FileInputStream;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -113,9 +115,8 @@ public class PulsarClientTool implements CommandHook {
     String tlsKeyStorePassword;
     String sslFactoryPlugin;
     String sslFactoryPluginParams;
-    String operationTimeoutMs;
-    String lookupTimeoutMs;
 
+    protected Properties clientProperties;
     protected final CommandLine commander;
     protected CmdProduce produceCommand;
     protected CmdConsume consumeCommand;
@@ -158,8 +159,7 @@ public class PulsarClientTool implements CommandHook {
         this.tlsCertificateFilePath = properties.getProperty("tlsCertificateFilePath");
         this.sslFactoryPlugin = properties.getProperty("sslFactoryPlugin");
         this.sslFactoryPluginParams = properties.getProperty("sslFactoryPluginParams");
-        this.operationTimeoutMs = properties.getProperty("operationTimeoutMs");
-        this.lookupTimeoutMs = properties.getProperty("lookupTimeoutMs");
+        this.clientProperties = properties;
         pulsarClientPropertiesProvider = PulsarClientPropertiesProvider.create(properties);
         commander.setDefaultValueProvider(pulsarClientPropertiesProvider);
         commander.addSubcommand("produce", produceCommand);
@@ -187,13 +187,12 @@ public class PulsarClientTool implements CommandHook {
         clientBuilder.enableTlsHostnameVerification(this.tlsEnableHostnameVerification);
         clientBuilder.serviceUrl(rootParams.serviceURL);
 
-        Integer opTimeout = parseTimeout(this.operationTimeoutMs, "operationTimeoutMs");
-        if (opTimeout != null) {
-            clientBuilder.operationTimeout(opTimeout, java.util.concurrent.TimeUnit.MILLISECONDS);
-        }
-        Integer lookupTimeout = parseTimeout(this.lookupTimeoutMs, "lookupTimeoutMs");
-        if (lookupTimeout != null) {
-            clientBuilder.lookupTimeout(lookupTimeout, java.util.concurrent.TimeUnit.MILLISECONDS);
+        if (this.clientProperties != null) {
+            Map<String, Object> configMap = new HashMap<>();
+            for (String key : this.clientProperties.stringPropertyNames()) {
+                configMap.put(key, this.clientProperties.getProperty(key));
+            }
+            clientBuilder.loadConf(configMap);
         }
 
         clientBuilder.tlsTrustCertsFilePath(this.rootParams.tlsTrustCertsFilePath)
@@ -222,18 +221,6 @@ public class PulsarClientTool implements CommandHook {
         this.consumeCommand.updateConfig(clientBuilder, authentication, this.rootParams.serviceURL);
         this.readCommand.updateConfig(clientBuilder, authentication, this.rootParams.serviceURL);
         return 0;
-    }
-
-    private Integer parseTimeout(String timeoutStr, String propertyName) {
-        if (isNotBlank(timeoutStr)) {
-            try {
-                return Integer.parseInt(timeoutStr.trim());
-            } catch (NumberFormatException e) {
-                commander.getErr().println("Warning: Invalid " + propertyName + " value '"
-                        + timeoutStr + "' in client.conf. Using default value.");
-            }
-        }
-        return null;
     }
 
     public int run(String[] args) {
