@@ -18,10 +18,14 @@
  */
 package org.apache.pulsar.functions.auth;
 
+import static java.net.HttpURLConnection.HTTP_CONFLICT;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
@@ -228,5 +232,54 @@ public class KubernetesSecretsTokenAuthProviderTest {
 
         Assert.assertTrue(functionAuthData.isPresent());
         Assert.assertEquals(new String(functionAuthData.get().getData()), "pf-secret-z7mxx");
+    }
+
+    @Test
+    public void testUpdateAuthDataWithConflict() throws Exception {
+        CoreV1Api coreV1Api = mock(CoreV1Api.class);
+        KubernetesSecretsTokenAuthProvider kubernetesSecretsTokenAuthProvider =
+                new KubernetesSecretsTokenAuthProvider();
+        kubernetesSecretsTokenAuthProvider.initialize(coreV1Api);
+        kubernetesSecretsTokenAuthProvider.setNamespaceProviderFunc((fd) -> "default");
+
+        // Mock the create call using the fluid builder pattern (APIcreateNamespacedSecretRequest)
+        ApiException conflictException = new ApiException(HTTP_CONFLICT, "Conflict");
+        CoreV1Api.APIcreateNamespacedSecretRequest createRequest =
+                mock(CoreV1Api.APIcreateNamespacedSecretRequest.class);
+        doThrow(conflictException).when(createRequest).execute();
+        doReturn(createRequest).when(coreV1Api).createNamespacedSecret(anyString(), any(V1Secret.class));
+
+        // Mock the replace call using the fluid builder pattern (APIreplaceNamespacedSecretRequest)
+        CoreV1Api.APIreplaceNamespacedSecretRequest replaceRequest =
+                mock(CoreV1Api.APIreplaceNamespacedSecretRequest.class);
+        doReturn(new V1Secret()).when(replaceRequest).execute();
+        doReturn(replaceRequest).when(coreV1Api).replaceNamespacedSecret(anyString(), anyString(), any(V1Secret.class));
+
+        // Trigger updateAuthData with existing function auth data and a new token
+        FunctionDetails funcDetails = new FunctionDetails();
+        funcDetails.setTenant("test-tenant");
+        funcDetails.setNamespace("test-ns");
+        funcDetails.setName("test-func");
+
+        Optional<FunctionAuthData> existingFunctionAuthData = Optional.of(
+                FunctionAuthData.builder().data("existing".getBytes()).build());
+
+        Optional<FunctionAuthData> functionAuthData = kubernetesSecretsTokenAuthProvider.updateAuthData(
+                funcDetails, existingFunctionAuthData, new AuthenticationDataSource() {
+                    @Override
+                    public boolean hasDataFromCommand() {
+                        return true;
+                    }
+                    @Override
+                    public String getCommandData() {
+                        return "new-updated-token";
+                    }
+                });
+
+        Assert.assertTrue(functionAuthData.isPresent());
+        Assert.assertEquals(new String(functionAuthData.get().getData()), "existing");
+
+        verify(coreV1Api, times(1)).replaceNamespacedSecret(anyString(), anyString(), any(V1Secret.class));
+        verify(replaceRequest, times(1)).execute();
     }
 }
