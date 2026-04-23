@@ -22,6 +22,8 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import com.google.common.annotations.VisibleForTesting;
 import java.io.FileInputStream;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -114,6 +116,7 @@ public class PulsarClientTool implements CommandHook {
     String sslFactoryPlugin;
     String sslFactoryPluginParams;
 
+    protected Properties clientProperties;
     protected final CommandLine commander;
     protected CmdProduce produceCommand;
     protected CmdConsume consumeCommand;
@@ -156,7 +159,7 @@ public class PulsarClientTool implements CommandHook {
         this.tlsCertificateFilePath = properties.getProperty("tlsCertificateFilePath");
         this.sslFactoryPlugin = properties.getProperty("sslFactoryPlugin");
         this.sslFactoryPluginParams = properties.getProperty("sslFactoryPluginParams");
-
+        this.clientProperties = properties;
         pulsarClientPropertiesProvider = PulsarClientPropertiesProvider.create(properties);
         commander.setDefaultValueProvider(pulsarClientPropertiesProvider);
         commander.addSubcommand("produce", produceCommand);
@@ -184,6 +187,10 @@ public class PulsarClientTool implements CommandHook {
         clientBuilder.enableTlsHostnameVerification(this.tlsEnableHostnameVerification);
         clientBuilder.serviceUrl(rootParams.serviceURL);
 
+        if (this.clientProperties != null) {
+            clientBuilder.loadConf(createConfigMap());
+        }
+
         clientBuilder.tlsTrustCertsFilePath(this.rootParams.tlsTrustCertsFilePath)
                 .tlsKeyFilePath(tlsKeyFilePath)
                 .tlsCertificateFilePath(tlsCertificateFilePath);
@@ -210,6 +217,15 @@ public class PulsarClientTool implements CommandHook {
         this.consumeCommand.updateConfig(clientBuilder, authentication, this.rootParams.serviceURL);
         this.readCommand.updateConfig(clientBuilder, authentication, this.rootParams.serviceURL);
         return 0;
+    }
+
+    @VisibleForTesting
+    Map<String, Object> createConfigMap() {
+        Map<String, Object> configMap = new HashMap<>();
+        for (String key : this.clientProperties.stringPropertyNames()) {
+                configMap.put(key, this.clientProperties.getProperty(key));
+        }
+        return configMap;
     }
 
     public int run(String[] args) {
