@@ -26,7 +26,6 @@ import static org.testng.Assert.assertTrue;
 import java.io.File;
 import java.nio.file.Files;
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
@@ -602,10 +601,8 @@ public class PulsarClientToolTest extends BrokerTestBase {
         properties.setProperty("lookupTimeoutMs", String.valueOf(expectedLookupTimeout));
 
         // Simulate the new logic in PulsarClientTool: Convert to Map
-        Map<String, Object> configMap = new HashMap<>();
-        for (String key : properties.stringPropertyNames()) {
-            configMap.put(key, properties.getProperty(key));
-        }
+        PulsarClientTool tool = new PulsarClientTool(properties);
+        Map<String, Object> configMap = tool.createConfigMap();
 
         // Apply the configuration using loadConf()
         ClientBuilderImpl builder = new ClientBuilderImpl();

@@ -188,11 +188,7 @@ public class PulsarClientTool implements CommandHook {
         clientBuilder.serviceUrl(rootParams.serviceURL);
 
         if (this.clientProperties != null) {
-            Map<String, Object> configMap = new HashMap<>();
-            for (String key : this.clientProperties.stringPropertyNames()) {
-                configMap.put(key, this.clientProperties.getProperty(key));
-            }
-            clientBuilder.loadConf(configMap);
+            clientBuilder.loadConf(createConfigMap());
         }
 
         clientBuilder.tlsTrustCertsFilePath(this.rootParams.tlsTrustCertsFilePath)
@@ -221,6 +217,17 @@ public class PulsarClientTool implements CommandHook {
         this.consumeCommand.updateConfig(clientBuilder, authentication, this.rootParams.serviceURL);
         this.readCommand.updateConfig(clientBuilder, authentication, this.rootParams.serviceURL);
         return 0;
+    }
+
+    @VisibleForTesting
+    Map<String, Object> createConfigMap() {
+        Map<String, Object> configMap = new HashMap<>();
+        if (this.clientProperties != null) {
+            for (String key : this.clientProperties.stringPropertyNames()) {
+                configMap.put(key, this.clientProperties.getProperty(key));
+            }
+        }
+        return configMap;
     }
 
     public int run(String[] args) {
