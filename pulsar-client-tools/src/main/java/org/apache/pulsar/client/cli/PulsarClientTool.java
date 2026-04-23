@@ -222,10 +222,8 @@ public class PulsarClientTool implements CommandHook {
     @VisibleForTesting
     Map<String, Object> createConfigMap() {
         Map<String, Object> configMap = new HashMap<>();
-        if (this.clientProperties != null) {
-            for (String key : this.clientProperties.stringPropertyNames()) {
+        for (String key : this.clientProperties.stringPropertyNames()) {
                 configMap.put(key, this.clientProperties.getProperty(key));
-            }
         }
         return configMap;
     }
