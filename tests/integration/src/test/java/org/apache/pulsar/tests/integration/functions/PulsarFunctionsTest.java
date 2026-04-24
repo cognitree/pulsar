@@ -330,13 +330,7 @@ public abstract class PulsarFunctionsTest extends PulsarFunctionsTestBase {
         for (int i = 0; i < 3; i++) {
             producer.send(String.format("%d", i).getBytes());
         }
-        Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
-            TopicStats currentStats = pulsarAdmin.topics().getStats(inputTopicName, true);
-            SubscriptionStats currentSubStats = currentStats.getSubscriptions().get("public/default/" + functionName);
-            assertNotNull(currentSubStats);
-            assertEquals(currentSubStats.getMsgBacklog(), 3);
-            assertEquals(currentSubStats.getUnackedMessages(), 3);
-        });
+        awaitAndVerifySubscriptionStats(inputTopicName, "public/default/" + functionName, 3, 3);
 
         for (int i = 3; i < numOfMessages; i++) {
             producer.send(String.format("%d", i).getBytes());
@@ -365,17 +359,23 @@ public abstract class PulsarFunctionsTest extends PulsarFunctionsTestBase {
         assertThat(i).isGreaterThanOrEqualTo(expectedResults.length - 1);
 
         // test that all messages are acked
-        Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
-            TopicStats finalStats = pulsarAdmin.topics().getStats(inputTopicName, true);
-            SubscriptionStats finalSubStats = finalStats.getSubscriptions().get("public/default/" + functionName);
-            assertNotNull(finalSubStats);
-            assertEquals(finalSubStats.getMsgBacklog(), 0);
-            assertEquals(finalSubStats.getUnackedMessages(), 0);
-        });
+        awaitAndVerifySubscriptionStats(inputTopicName, "public/default/" + functionName, 0, 0);
 
         deleteFunction(functionName);
 
         getFunctionInfoNotFound(functionName);
+    }
+
+    private void awaitAndVerifySubscriptionStats(String topicName, String subscriptionName, int expectedBacklog,
+                                                 int expectedUnacked) {
+        Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
+            TopicStats stats = pulsarAdmin.topics().getStats(topicName, true);
+            SubscriptionStats subStats = stats.getSubscriptions().get(subscriptionName);
+
+            assertNotNull(subStats, "Subscription stats should not be null for: " + subscriptionName);
+            assertEquals(subStats.getMsgBacklog(), expectedBacklog, "Message backlog mismatch");
+            assertEquals(subStats.getUnackedMessages(), expectedUnacked, "Unacked messages mismatch");
+        });
     }
 
     protected void testFunctionNegAck(Runtime runtime) throws Exception {
