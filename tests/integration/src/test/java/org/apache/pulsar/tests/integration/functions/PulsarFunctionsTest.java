@@ -330,11 +330,7 @@ public abstract class PulsarFunctionsTest extends PulsarFunctionsTestBase {
         for (int i = 0; i < 3; i++) {
             producer.send(String.format("%d", i).getBytes());
         }
-        TopicStats stats = pulsarAdmin.topics().getStats(inputTopicName, true);
-        SubscriptionStats subStats = stats.getSubscriptions().get("public/default/" + functionName);
-        assertNotNull(subStats);
-        assertEquals(3, subStats.getMsgBacklog());
-        assertEquals(3, subStats.getUnackedMessages());
+        awaitAndVerifySubscriptionStats(inputTopicName, "public/default/" + functionName, 3, 3);
 
         for (int i = 3; i < numOfMessages; i++) {
             producer.send(String.format("%d", i).getBytes());
@@ -363,15 +359,23 @@ public abstract class PulsarFunctionsTest extends PulsarFunctionsTestBase {
         assertThat(i).isGreaterThanOrEqualTo(expectedResults.length - 1);
 
         // test that all messages are acked
-        stats = pulsarAdmin.topics().getStats(inputTopicName, true);
-        subStats = stats.getSubscriptions().get("public/default/" + functionName);
-        assertNotNull(subStats);
-        assertEquals(0, subStats.getMsgBacklog());
-        assertEquals(0, subStats.getUnackedMessages());
+        awaitAndVerifySubscriptionStats(inputTopicName, "public/default/" + functionName, 0, 0);
 
         deleteFunction(functionName);
 
         getFunctionInfoNotFound(functionName);
+    }
+
+    private void awaitAndVerifySubscriptionStats(String topicName, String subscriptionName, int expectedBacklog,
+                                                 int expectedUnacked) {
+        Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
+            TopicStats stats = pulsarAdmin.topics().getStats(topicName, true);
+            SubscriptionStats subStats = stats.getSubscriptions().get(subscriptionName);
+
+            assertNotNull(subStats, "Subscription stats should not be null for: " + subscriptionName);
+            assertEquals(subStats.getMsgBacklog(), expectedBacklog, "Message backlog mismatch");
+            assertEquals(subStats.getUnackedMessages(), expectedUnacked, "Unacked messages mismatch");
+        });
     }
 
     protected void testFunctionNegAck(Runtime runtime) throws Exception {
