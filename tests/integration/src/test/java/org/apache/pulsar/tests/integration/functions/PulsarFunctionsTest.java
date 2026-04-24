@@ -330,11 +330,13 @@ public abstract class PulsarFunctionsTest extends PulsarFunctionsTestBase {
         for (int i = 0; i < 3; i++) {
             producer.send(String.format("%d", i).getBytes());
         }
-        TopicStats stats = pulsarAdmin.topics().getStats(inputTopicName, true);
-        SubscriptionStats subStats = stats.getSubscriptions().get("public/default/" + functionName);
-        assertNotNull(subStats);
-        assertEquals(3, subStats.getMsgBacklog());
-        assertEquals(3, subStats.getUnackedMessages());
+        Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
+            TopicStats currentStats = pulsarAdmin.topics().getStats(inputTopicName, true);
+            SubscriptionStats currentSubStats = currentStats.getSubscriptions().get("public/default/" + functionName);
+            assertNotNull(currentSubStats);
+            assertEquals(currentSubStats.getMsgBacklog(), 3);
+            assertEquals(currentSubStats.getUnackedMessages(), 3);
+        });
 
         for (int i = 3; i < numOfMessages; i++) {
             producer.send(String.format("%d", i).getBytes());
@@ -363,11 +365,13 @@ public abstract class PulsarFunctionsTest extends PulsarFunctionsTestBase {
         assertThat(i).isGreaterThanOrEqualTo(expectedResults.length - 1);
 
         // test that all messages are acked
-        stats = pulsarAdmin.topics().getStats(inputTopicName, true);
-        subStats = stats.getSubscriptions().get("public/default/" + functionName);
-        assertNotNull(subStats);
-        assertEquals(0, subStats.getMsgBacklog());
-        assertEquals(0, subStats.getUnackedMessages());
+        Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
+            TopicStats finalStats = pulsarAdmin.topics().getStats(inputTopicName, true);
+            SubscriptionStats finalSubStats = finalStats.getSubscriptions().get("public/default/" + functionName);
+            assertNotNull(finalSubStats);
+            assertEquals(finalSubStats.getMsgBacklog(), 0);
+            assertEquals(finalSubStats.getUnackedMessages(), 0);
+        });
 
         deleteFunction(functionName);
 
