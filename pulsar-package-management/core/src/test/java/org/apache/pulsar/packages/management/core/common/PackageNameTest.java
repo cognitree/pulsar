@@ -116,4 +116,22 @@ public class PackageNameTest {
         PackageName name = PackageName.get("function://public/default/test");
         Assert.assertEquals("function://public/default/test@latest", name.toString());
     }
+
+    @Test
+    public void testPathTraversalBypassConstructor() throws Exception {
+        // Create a normal, valid package to bypass the splitter
+        PackageName packageName = PackageName.get("function://tenant-a/ns/name@v1");
+
+        java.lang.reflect.Field tenantField = PackageName.class.getDeclaredField("tenant");
+        tenantField.setAccessible(true);
+        tenantField.set(packageName, "tenant-a/../../system-tenant");
+        // Define what the SAFE, patched output should look like (URL Encoded)
+        String expectedSafePath = "function/tenant-a%2F..%2F..%2Fsystem-tenant/ns/name/v1";
+
+        // Trigger the vulnerable method
+        String actualPath = packageName.toRestPath();
+        // The Trap: This will fail, because actualPath will still contain unencoded slashes
+        Assert.assertEquals(actualPath, expectedSafePath,
+                "VULNERABILITY REPLICATED: The toRestPath method failed to encode path traversal characters!");
+    }
 }

@@ -23,6 +23,8 @@ import com.google.common.base.Strings;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
@@ -136,7 +138,12 @@ public class PackageName {
     }
 
     public String toRestPath() {
-        return String.format("%s/%s/%s/%s/%s", type, tenant, namespace, name, version);
+        return String.format("%s/%s/%s/%s/%s",
+                type,
+                URLEncoder.encode(tenant, StandardCharsets.UTF_8),
+                URLEncoder.encode(namespace, StandardCharsets.UTF_8),
+                URLEncoder.encode(name, StandardCharsets.UTF_8),
+                URLEncoder.encode(version, StandardCharsets.UTF_8));
     }
 
     @Override
