@@ -369,9 +369,6 @@ public abstract class PulsarFunctionsTest extends PulsarFunctionsTestBase {
     private void awaitAndVerifySubscriptionStats(String inputTopicName, String functionName, int expectedBacklog,
                                                  int expectedUnacked) {
         Awaitility.await()
-                // Check every 50ms
-                .pollInterval(Duration.ofMillis(50))
-                .atMost(Duration.ofSeconds(10))
                 .ignoreExceptions()
                 .untilAsserted(() -> {
                     TopicStats currentStats = pulsarAdmin.topics().getStats(inputTopicName, true);
