@@ -23,8 +23,7 @@ import com.google.common.base.Strings;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import com.google.common.net.UrlEscapers;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
@@ -138,12 +137,13 @@ public class PackageName {
     }
 
     public String toRestPath() {
+        // Use Guava's urlPathSegmentEscaper to safely encode each segment and prevents Path Traversal (CWE-22)
         return String.format("%s/%s/%s/%s/%s",
-                type,
-                URLEncoder.encode(tenant, StandardCharsets.UTF_8),
-                URLEncoder.encode(namespace, StandardCharsets.UTF_8),
-                URLEncoder.encode(name, StandardCharsets.UTF_8),
-                URLEncoder.encode(version, StandardCharsets.UTF_8));
+                type.toString(),
+                UrlEscapers.urlPathSegmentEscaper().escape(tenant),
+                UrlEscapers.urlPathSegmentEscaper().escape(namespace),
+                UrlEscapers.urlPathSegmentEscaper().escape(name),
+                UrlEscapers.urlPathSegmentEscaper().escape(version));
     }
 
     @Override

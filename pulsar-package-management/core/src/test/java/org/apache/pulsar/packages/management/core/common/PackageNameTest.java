@@ -125,7 +125,7 @@ public class PackageNameTest {
         java.lang.reflect.Field tenantField = PackageName.class.getDeclaredField("tenant");
         tenantField.setAccessible(true);
         tenantField.set(packageName, "tenant-a/../../system-tenant");
-        // Define what the SAFE, patched output should look like (URL Encoded)
+        // Define what the SAFE, patched output should look like
         String expectedSafePath = "function/tenant-a%2F..%2F..%2Fsystem-tenant/ns/name/v1";
 
         // Trigger the vulnerable method
