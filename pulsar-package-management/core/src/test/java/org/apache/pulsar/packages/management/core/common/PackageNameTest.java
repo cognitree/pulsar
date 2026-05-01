@@ -119,19 +119,24 @@ public class PackageNameTest {
 
     @Test
     public void testPathTraversalBypassConstructor() throws Exception {
-        // Create a normal, valid package to bypass the splitter
-        PackageName packageName = PackageName.get("function://tenant-a/ns/name@v1");
+        // Use the package-private constructor annotated with @VisibleForTesting
+        // to inject a traversal payload directly, bypassing normal Splitter validation.
+        PackageName packageName = new PackageName(
+                PackageType.FUNCTION,
+                "tenant-a/../../system-tenant",
+                "ns",
+                "name",
+                "v1"
+        );
 
-        java.lang.reflect.Field tenantField = PackageName.class.getDeclaredField("tenant");
-        tenantField.setAccessible(true);
-        tenantField.set(packageName, "tenant-a/../../system-tenant");
-        // Define what the SAFE, patched output should look like
+        // Verify that path separators in package components are percent-encoded in the generated REST path.
         String expectedSafePath = "function/tenant-a%2F..%2F..%2Fsystem-tenant/ns/name/v1";
 
-        // Trigger the vulnerable method
+        // Invoke the method under test
         String actualPath = packageName.toRestPath();
-        // The Trap: This will fail, because actualPath will still contain unencoded slashes
+
+        // This assertion verifies that traversal characters are encoded rather than emitted as raw slashes.
         Assert.assertEquals(actualPath, expectedSafePath,
-                "VULNERABILITY REPLICATED: The toRestPath method failed to encode path traversal characters!");
+                "The toRestPath method must encode path traversal characters in package components.");
     }
 }
