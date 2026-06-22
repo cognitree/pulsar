@@ -24,12 +24,12 @@ on:
       - master
       - branch-*
       - pulsar-*
-  schedule:
-    # scheduled job with JDK 21
-    - cron: '0 12 * * *'
-    # scheduled job with JDK 25
-    # if cron expression is changed, make sure to update the expression in jdk_major_version step in preconditions job
-    - cron: '0 6 * * *'
+  # schedule:
+  #   # scheduled job with JDK 21
+  #   - cron: '0 12 * * *'
+  #   # scheduled job with JDK 25
+  #   # if cron expression is changed, make sure to update the expression in jdk_major_version step in preconditions job
+  #   - cron: '0 6 * * *'
   workflow_dispatch:
     inputs:
       collect_coverage:

@@ -22,8 +22,8 @@ name: "CodeQL"
 on:
   push:
     branches: [ 'master' ]
-  schedule:
-    - cron: '27 21 * * 4'
+  # schedule:
+  #   - cron: '27 21 * * 4'
   workflow_dispatch:
 
 concurrency:
